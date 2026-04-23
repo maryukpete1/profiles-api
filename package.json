@@ -4,7 +4,7 @@
   "description": "Backend Wizards Stage 1 – Profile API with multi-API integration",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node scripts/seed.js && node src/server.js",
     "seed": "node scripts/seed.js"
   },
   "keywords": [],
