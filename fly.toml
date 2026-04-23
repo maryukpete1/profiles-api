@@ -1,15 +1,16 @@
-# fly.toml app configuration file generated for stage-2-task on 2026-04-23T20:21:16Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# fly.toml app configuration for stage-2-task
+# See https://fly.io/docs/reference/configuration/
 
 app = 'stage-2-task'
-primary_region = 'ams'
+primary_region = 'lhr'
 
 [build]
 
+[env]
+  PORT = "3000"
+
 [http_service]
-  internal_port = 8080
+  internal_port = 3000
   force_https = true
   auto_stop_machines = 'stop'
   auto_start_machines = true
@@ -17,7 +18,6 @@ primary_region = 'ams'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
+  memory = '256mb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
