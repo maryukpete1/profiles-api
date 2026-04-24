@@ -149,8 +149,8 @@ app.use((req, res) => {
 
 // Start Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Insighta Labs API running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Insighta Labs API running on 0.0.0.0:${PORT}`);
 });
 
 module.exports = app;
