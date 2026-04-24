@@ -87,7 +87,7 @@ async function fetchFromDB(req, res, filters) {
 
     // Retry logic for DB connection (Fly trial VMs sleep)
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 15;
     let lastErr;
 
     while (attempts < maxAttempts) {
@@ -122,14 +122,14 @@ async function fetchFromDB(req, res, filters) {
             lastErr = err;
             attempts++;
             if (attempts < maxAttempts) {
-                console.log(`DB attempt ${attempts} failed, retrying in 2s...`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log(`DB attempt ${attempts}/${maxAttempts} failed (Postgres may be cold-starting). Retrying in 4s...`);
+                await new Promise(resolve => setTimeout(resolve, 4000));
             }
         }
     }
 
-    console.error("All DB attempts failed:", lastErr);
-    return res.status(500).json({ status: 'error', message: 'Internal server error' });
+    console.error("All DB attempts failed after aggressive retry:", lastErr);
+    return res.status(500).json({ status: 'error', message: 'Internal server error - database unreachable' });
 }
 
 // ─── GET /api/profiles ─────────────────────────────────────────────────────────
