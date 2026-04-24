@@ -85,37 +85,51 @@ async function fetchFromDB(req, res, filters) {
 
     const { whereClause, values, paramCount } = buildFiltersQuery(filters || req.query);
 
-    try {
-        // Get total count
-        const countRes = await pool.query(`SELECT COUNT(*) FROM profiles ${whereClause}`, values);
-        const total = parseInt(countRes.rows[0].count, 10);
+    // Retry logic for DB connection (Fly trial VMs sleep)
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastErr;
 
-        // Get paginated data
-        const offset = (pageNum - 1) * limitNum;
-        const querySQL = `
-      SELECT id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at 
-      FROM profiles 
-      ${whereClause} 
-      ORDER BY ${sortCol} ${sortDir} 
-      LIMIT $${paramCount} OFFSET $${paramCount + 1}
-    `;
+    while (attempts < maxAttempts) {
+        try {
+            // Get total count
+            const countRes = await pool.query(`SELECT COUNT(*) FROM profiles ${whereClause}`, values);
+            const total = parseInt(countRes.rows[0].count, 10);
 
-        const dataRes = await pool.query(querySQL, [...values, limitNum, offset]);
+            // Get paginated data
+            const offset = (pageNum - 1) * limitNum;
+            const querySQL = `
+                SELECT id, name, gender, gender_probability, age, age_group, country_id, country_name, country_probability, created_at 
+                FROM profiles 
+                ${whereClause} 
+                ORDER BY ${sortCol} ${sortDir} 
+                LIMIT $${paramCount} OFFSET $${paramCount + 1}
+            `;
 
-        return res.status(200).json({
-            status: 'success',
-            data: dataRes.rows,
-            pagination: {
-                total_count: total,
-                current_page: pageNum,
-                limit: limitNum,
-                total_pages: Math.ceil(total / limitNum)
+            const dataRes = await pool.query(querySQL, [...values, limitNum, offset]);
+
+            return res.status(200).json({
+                status: 'success',
+                data: dataRes.rows,
+                pagination: {
+                    total_count: total,
+                    current_page: pageNum,
+                    limit: limitNum,
+                    total_pages: Math.ceil(total / limitNum)
+                }
+            });
+        } catch (err) {
+            lastErr = err;
+            attempts++;
+            if (attempts < maxAttempts) {
+                console.log(`DB attempt ${attempts} failed, retrying in 2s...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
-        });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ status: 'error', message: 'Internal server error' });
+        }
     }
+
+    console.error("All DB attempts failed:", lastErr);
+    return res.status(500).json({ status: 'error', message: 'Internal server error' });
 }
 
 // ─── GET /api/profiles ─────────────────────────────────────────────────────────
