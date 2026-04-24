@@ -69,12 +69,16 @@ async function fetchFromDB(req, res, filters) {
     let limitNum = parseInt(limit, 10);
     if (isNaN(pageNum) || pageNum < 1) pageNum = 1;
     if (isNaN(limitNum) || limitNum < 1) limitNum = 10;
-    if (limitNum > 50) limitNum = 50;
+    if (limitNum > 100) limitNum = 100;
 
     // Sorting defaults
     const allowedSorts = ['age', 'created_at', 'gender_probability'];
     if (sort_by && !allowedSorts.includes(sort_by)) {
-        return res.status(400).json({ status: 'error', message: 'Invalid query parameters' });
+        return res.status(400).json({
+            status: 'error',
+            message: 'Invalid sort parameter',
+            error: 'Invalid query parameters'
+        });
     }
     const sortCol = sort_by || 'created_at';
     const sortDir = (order && order.toLowerCase() === 'asc') ? 'ASC' : 'DESC';
@@ -100,14 +104,17 @@ async function fetchFromDB(req, res, filters) {
 
         return res.status(200).json({
             status: 'success',
-            page: pageNum,
-            limit: limitNum,
-            total,
-            data: dataRes.rows
+            data: dataRes.rows,
+            pagination: {
+                total_count: total,
+                current_page: pageNum,
+                limit: limitNum,
+                total_pages: Math.ceil(total / limitNum)
+            }
         });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ status: 'error', message: 'Server failure' });
+        return res.status(500).json({ status: 'error', message: 'Internal server error' });
     }
 }
 
